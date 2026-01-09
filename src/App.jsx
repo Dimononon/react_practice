@@ -8,6 +8,16 @@ import categoriesFromServer from './api/categories';
 import productsFromServer from './api/products';
 
 const ALL_USERS_ID = 'all';
+const SORT_FIELD_ID = 'ID';
+const SORT_FIELD_PRODUCT = 'Product';
+const SORT_FIELD_CATEGORY = 'Caregory';
+const SORT_FIELD_USER = 'User';
+const TABLE_COLUMNS = [
+  SORT_FIELD_ID,
+  SORT_FIELD_PRODUCT,
+  SORT_FIELD_CATEGORY,
+  SORT_FIELD_USER,
+];
 
 function findCategoryById(id) {
   return categoriesFromServer.find(category => category.id === id) || null;
@@ -22,6 +32,8 @@ function getVisibleProducts(
   selectedUserId,
   query,
   selectedCategories,
+  sortField,
+  isReversed,
 ) {
   let resultP = [...products];
 
@@ -44,6 +56,27 @@ function getVisibleProducts(
     });
   }
 
+  if (sortField) {
+    resultP.sort((product1, product2) => {
+      switch (sortField) {
+        case SORT_FIELD_ID:
+          return product1.id - product2.id;
+        case SORT_FIELD_PRODUCT:
+          return product1.name.localeCompare(product2.name);
+        case SORT_FIELD_CATEGORY:
+          return product1.category.title.localeCompare(product2.category.title);
+        case SORT_FIELD_USER:
+          return product1.user.name.localeCompare(product2.user.name);
+        default:
+          return 0;
+      }
+    });
+
+    if (isReversed) {
+      resultP.reverse();
+    }
+  }
+
   return resultP;
 }
 
@@ -62,12 +95,16 @@ export const App = () => {
   const [selectedUserId, setSelectedUserId] = useState(ALL_USERS_ID);
   const [query, setQuery] = useState('');
   const [selectedCategories, setSelectedCategories] = useState([]);
+  const [sortField, setSortField] = useState('');
+  const [reversed, setReversed] = useState(false);
 
   const visibleProducts = getVisibleProducts(
     products,
     selectedUserId,
     query,
     selectedCategories,
+    sortField,
+    reversed,
   );
 
   function handleResetButton() {
@@ -88,6 +125,18 @@ export const App = () => {
     }
 
     setSelectedCategories(resultCategoties);
+  }
+
+  function handleSortButton(columnName) {
+    if (columnName !== sortField) {
+      setSortField(columnName);
+      setReversed(false);
+    } else if (!reversed) {
+      setReversed(true);
+    } else {
+      setSortField('');
+      setReversed(false);
+    }
   }
 
   return (
@@ -171,7 +220,7 @@ export const App = () => {
                   key={category.id}
                   onClick={() => handleCategorySelect(category.id)}
                 >
-                  {`${category.icon} - ${category.title}`}
+                  {category.title}
                 </a>
               ))}
             </div>
@@ -201,49 +250,26 @@ export const App = () => {
             >
               <thead>
                 <tr>
-                  <th>
-                    <span className="is-flex is-flex-wrap-nowrap">
-                      ID
-                      <a href="#/">
-                        <span className="icon">
-                          <i data-cy="SortIcon" className="fas fa-sort" />
-                        </span>
-                      </a>
-                    </span>
-                  </th>
-
-                  <th>
-                    <span className="is-flex is-flex-wrap-nowrap">
-                      Product
-                      <a href="#/">
-                        <span className="icon">
-                          <i data-cy="SortIcon" className="fas fa-sort-down" />
-                        </span>
-                      </a>
-                    </span>
-                  </th>
-
-                  <th>
-                    <span className="is-flex is-flex-wrap-nowrap">
-                      Category
-                      <a href="#/">
-                        <span className="icon">
-                          <i data-cy="SortIcon" className="fas fa-sort-up" />
-                        </span>
-                      </a>
-                    </span>
-                  </th>
-
-                  <th>
-                    <span className="is-flex is-flex-wrap-nowrap">
-                      User
-                      <a href="#/">
-                        <span className="icon">
-                          <i data-cy="SortIcon" className="fas fa-sort" />
-                        </span>
-                      </a>
-                    </span>
-                  </th>
+                  {TABLE_COLUMNS.map(column => (
+                    <th key={column}>
+                      <span className="is-flex is-flex-wrap-nowrap">
+                        {column}
+                        <a href="#/" onClick={() => handleSortButton(column)}>
+                          <span className="icon">
+                            <i
+                              data-cy="SortIcon"
+                              className={cn('fas', {
+                                'fa-sort': sortField !== column,
+                                'fa-sort-up': sortField === column && !reversed,
+                                'fa-sort-down':
+                                  sortField === column && reversed,
+                              })}
+                            />
+                          </span>
+                        </a>
+                      </span>
+                    </th>
+                  ))}
                 </tr>
               </thead>
 
