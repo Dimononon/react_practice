@@ -16,12 +16,23 @@ function findUserById(id) {
   return usersFromServer.find(user => user.id === id) || null;
 }
 
-function getVisibleProducts(products, selectedUserId) {
-  if (selectedUserId === ALL_USERS_ID) {
-    return [...products];
+function getVisibleProducts(products, selectedUserId, query) {
+  let resultP = [...products];
+
+  if (selectedUserId !== ALL_USERS_ID) {
+    resultP = resultP.filter(product => product.user.id === selectedUserId);
   }
 
-  return products.filter(product => product.user.id === selectedUserId);
+  if (query !== '') {
+    resultP = resultP.filter(product => {
+      const normalizedQuery = query.trim().toLowerCase();
+      const normalizedName = product.name.toLowerCase();
+
+      return normalizedName.includes(normalizedQuery);
+    });
+  }
+
+  return resultP;
 }
 
 const products = productsFromServer.map(product => {
@@ -37,8 +48,9 @@ const products = productsFromServer.map(product => {
 
 export const App = () => {
   const [selectedUserId, setSelectedUserId] = useState(ALL_USERS_ID);
+  const [query, setQuery] = useState('');
 
-  const visibleProducts = getVisibleProducts(products, selectedUserId);
+  const visibleProducts = getVisibleProducts(products, selectedUserId, query);
 
   return (
     <div className="section">
@@ -78,21 +90,25 @@ export const App = () => {
                   type="text"
                   className="input"
                   placeholder="Search"
-                  value="qwe"
+                  value={query}
+                  onChange={event => setQuery(event.target.value)}
                 />
 
                 <span className="icon is-left">
                   <i className="fas fa-search" aria-hidden="true" />
                 </span>
 
-                <span className="icon is-right">
-                  {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
-                  <button
-                    data-cy="ClearButton"
-                    type="button"
-                    className="delete"
-                  />
-                </span>
+                {query !== '' && (
+                  <span className="icon is-right">
+                    {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
+                    <button
+                      data-cy="ClearButton"
+                      type="button"
+                      className="delete"
+                      onClick={() => setQuery('')}
+                    />
+                  </span>
+                )}
               </p>
             </div>
 
@@ -200,7 +216,7 @@ export const App = () => {
 
             <tbody>
               {visibleProducts.map(product => (
-                <tr data-cy="Product">
+                <tr data-cy="Product" key={product.id}>
                   <td className="has-text-weight-bold" data-cy="ProductId">
                     {product.id}
                   </td>
